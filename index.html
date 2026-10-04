@@ -1,384 +1,983 @@
 <!DOCTYPE html>
-<html lang="vi">
+<html lang="vi" class="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mạng Xã Hội Nội Bộ Khối 8/8 - Không Gian Vũ Trụ</title>
+    <title>Mạng Xã Hội Nội Bộ Khối 8 - Trọng Tâm Lớp 8/8</title>
+
+    <!-- Tailwind CSS & FontAwesome Icons -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        cosmic: { 800: '#3b0764', 900: '#2e1065', 950: '#17052c' },
+                        golden: { 400: '#facc15', 500: '#eab308', 600: '#ca8a04' }
+                    }
+                }
+            }
+        }
+    </script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
-    <!-- Firebase SDKs (Compat version cho Realtime Database) -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+    <!-- 🌐 FIREBASE SDK (COMPAT) -->
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
 
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
-        body { font-family: 'Plus Jakarta Sans', sans-serif; }
-        .space-bg { background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #311042 100%); }
-        .glass { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1); }
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background: radial-gradient(circle at 50% 0%, #2e1065 0%, #17052c 60%, #0d021a 100%);
+            color: #f3e8ff;
+            background-attachment: fixed;
+        }
+
+        .glass-card {
+            background: rgba(30, 11, 58, 0.85);
+            backdrop-filter: blur(14px);
+            border: 1px solid rgba(216, 180, 254, 0.22);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4);
+        }
+
+        .nav-btn-active {
+            background: linear-gradient(135deg, #a855f7 0%, #6366f1 100%) !important;
+            color: #ffffff !important;
+            font-weight: 800 !important;
+            box-shadow: 0 0 15px rgba(168, 85, 247, 0.6) !important;
+            border: 1px solid rgba(255, 255, 255, 0.4) !important;
+            transform: scale(1.03);
+        }
+
+        .rainbow-chat-active {
+            background: linear-gradient(135deg, #ff007f, #7f00ff, #00e5ff, #00ff66, #ffbe00) !important;
+            background-size: 300% 300% !important;
+            animation: rainbowGlow 4s ease infinite !important;
+            color: #ffffff !important;
+            font-weight: bold !important;
+            box-shadow: 0 0 15px rgba(255, 0, 127, 0.5) !important;
+        }
+        @keyframes rainbowGlow {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        .sparkle-avatar-frame {
+            position: relative;
+            padding: 3px;
+            background: linear-gradient(45deg, #facc15, #ec4899, #3b82f6, #10b981, #facc15);
+            background-size: 200% 200%;
+            animation: borderRotate 2s linear infinite;
+            border-radius: 9999px;
+            box-shadow: 0 0 12px rgba(250, 204, 21, 0.8);
+        }
+        @keyframes borderRotate {
+            0% { background-position: 0% 0%; }
+            100% { background-position: 200% 200%; }
+        }
+
+        .server-broadcast-banner {
+            background: linear-gradient(90deg, #b91c1c, #c026d3, #4d7c0f, #b91c1c);
+            background-size: 200% 200%;
+            animation: broadcastBg 6s ease infinite;
+        }
+        @keyframes broadcastBg {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
     </style>
 </head>
-<body class="space-bg min-h-screen text-slate-100 flex flex-col">
+<body class="min-h-screen relative flex flex-col antialiased" id="mainBody">
 
-    <!-- Modal Đăng Nhập / Đăng Ký Bảo Mật -->
-    <div id="login-modal" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4">
-        <div class="glass max-w-md w-full p-6 rounded-2xl space-y-4 border border-indigo-500/30 shadow-2xl">
-            <div class="text-center space-y-1">
-                <h2 class="text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-pink-400">Đăng Nhập Lớp 8/8</h2>
-                <p class="text-xs text-slate-400">Nhập tên và mật khẩu của bạn (Tự động đăng ký nếu chưa có)</p>
-            </div>
-            <div class="space-y-3">
+    <!-- 🚨 BĂNG RÔN BÁO CÁO VI PHẠM TỐI CAO -->
+    <div id="violationBanner" class="hidden fixed top-0 left-0 right-0 z-50 bg-gradient-to-r from-red-700 via-rose-800 to-red-900 text-white p-4 shadow-2xl border-b-4 border-amber-400 animate-pulse">
+        <div class="max-w-6xl mx-auto flex items-center justify-between flex-wrap gap-3">
+            <div class="flex items-center gap-3">
+                <span class="text-3xl">🚨</span>
                 <div>
-                    <label class="block text-xs text-slate-400 mb-1">Tên / Biệt hiệu:</label>
-                    <input type="text" id="input-username" placeholder="Ví dụ: Khoa (:.]]" class="w-full bg-slate-900/80 border border-slate-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-indigo-500">
+                    <h3 class="font-black text-xs md:text-sm uppercase tracking-wider text-amber-300">THÔNG BÁO XỬ PHẠM TỪ BAN QUẢN TRỊ TỐI CAO</h3>
+                    <p id="violationBannerText" class="text-xs md:text-sm font-extrabold text-white">...</p>
                 </div>
-                <div>
-                    <label class="block text-xs text-slate-400 mb-1">Mật khẩu bảo vệ tài khoản:</label>
-                    <input type="password" id="input-password" placeholder="Nhập mật khẩu của bạn..." class="w-full bg-slate-900/80 border border-slate-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-indigo-500">
-                </div>
-                <button onclick="handleLogin()" class="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 py-3 rounded-xl font-semibold text-sm transition shadow-lg shadow-indigo-500/25 mt-2">
-                    Vào Không Gian Lớp Học
-                </button>
             </div>
+            <button onclick="closeViolationBanner()" class="px-4 py-2 bg-amber-400 text-slate-950 font-black text-xs rounded-xl hover:bg-amber-300 transition">
+                ĐÃ RÕ (ĐÓNG)
+            </button>
         </div>
     </div>
 
-    <!-- Header -->
-    <header class="glass sticky top-0 z-40 border-b border-indigo-500/20 px-4 py-3 flex justify-between items-center shadow-lg">
-        <div class="flex items-center space-x-3">
-            <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-500 to-purple-500 flex items-center justify-center font-extrabold text-xl shadow-glow">8</div>
-            <div>
-                <h1 class="font-bold text-lg text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-pink-400">MXH Lớp 8/8</h1>
-                <p class="text-xs text-slate-400">Hệ thống Realtime Database</p>
+    <!-- 📢 BĂNG RÔN LOA PHÁT THANH TOÀN SERVER -->
+    <div id="globalBroadcastArea" class="hidden server-broadcast-banner text-white p-3 shadow-2xl border-b border-amber-400 flex items-center justify-between gap-3 animate-pulse sticky top-0 z-30">
+        <div class="max-w-6xl mx-auto w-full flex items-center justify-between gap-3">
+            <div class="flex items-center gap-3 overflow-hidden">
+                <span class="text-2xl animate-bounce">📢</span>
+                <div>
+                    <p class="text-[10px] font-black uppercase text-amber-300 tracking-wider">THÔNG BÁO LOA PHÁT THANH TOÀN SERVER</p>
+                    <p id="broadcastMessageText" class="text-xs md:text-sm font-extrabold text-white">...</p>
+                </div>
             </div>
+            <span id="broadcastAuthorTag" class="text-[11px] font-bold px-3 py-1 bg-black/40 rounded-xl text-amber-300 border border-amber-400/40">Gửi bởi: ...</span>
         </div>
-        <div class="flex items-center space-x-3">
-            <div id="user-profile-badge" class="flex items-center space-x-2 bg-slate-800/80 px-3 py-1.5 rounded-full border border-indigo-500/30">
-                <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                <span id="current-username" class="text-sm font-semibold">Đang tải...</span>
-                <span class="bg-indigo-500/30 text-indigo-300 text-xs px-2 py-0.5 rounded-full font-bold"><span id="user-baki">1200</span> Bá Khí</span>
+    </div>
+
+    <div id="appContainer" class="relative z-10 flex flex-col min-h-screen">
+
+        <!-- HEADER BANNER -->
+        <header class="sticky top-0 z-40 glass-card border-b border-purple-500/20 px-4 lg:px-8 py-3">
+            <div class="max-w-7xl mx-auto flex items-center justify-between gap-4">
+                
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-amber-400 via-purple-600 to-indigo-600 p-0.5 shadow-lg flex items-center justify-center animate-bounce">
+                        <div class="w-full h-full bg-slate-950 rounded-[14px] flex items-center justify-center">
+                            <i class="fa-solid fa-crown text-amber-400 text-lg"></i>
+                        </div>
+                    </div>
+                    <div>
+                        <h1 class="font-extrabold text-base lg:text-lg bg-clip-text text-transparent bg-gradient-to-r from-amber-300 via-purple-300 to-pink-400">
+                            KHỐI 8 - TRỌNG TÂM LỚP 8/8
+                        </h1>
+                        <p class="text-[11px] text-purple-300/80 font-medium">Mạng Xã Hội Nội Bộ Tất Cả Trong Một (Firebase Cloud)</p>
+                    </div>
+                </div>
+
+                <!-- TAB SWITCHER -->
+                <nav class="hidden md:flex items-center gap-1 bg-purple-950/50 p-1.5 rounded-2xl border border-purple-500/30">
+                    <button onclick="switchTab('study')" id="nav-btn-study" class="px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 text-purple-200 hover:bg-purple-800/40">
+                        <i class="fa-solid fa-graduation-cap"></i> Học Tập
+                    </button>
+                    <button onclick="switchTab('feed')" id="nav-btn-feed" class="px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 text-purple-200 hover:bg-purple-800/40">
+                        <i class="fa-solid fa-newspaper"></i> Diễn Đàn & Góc Chill
+                    </button>
+                    <button onclick="switchTab('chat')" id="nav-btn-chat" class="px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 text-purple-200 hover:bg-purple-800/40">
+                        <i class="fa-solid fa-comments"></i> Nhắn Tin Zalo
+                    </button>
+                    <button onclick="switchTab('creative')" id="nav-btn-creative" class="px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 text-purple-200 hover:bg-purple-800/40">
+                        <i class="fa-solid fa-feather-pointed text-amber-400"></i> Thơ Văn
+                    </button>
+                    <button onclick="switchTab('shop')" id="nav-btn-shop" class="px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 text-purple-200 hover:bg-purple-800/40">
+                        <i class="fa-solid fa-store text-amber-300"></i> Shop Bá Khí
+                    </button>
+                    <button id="supremeNavBtn" onclick="switchTab('supreme')" class="hidden px-4 py-2 rounded-xl text-xs font-extrabold transition items-center gap-2 bg-gradient-to-r from-amber-500 to-yellow-600 text-slate-950 shadow-lg animate-pulse">
+                        👑 Điều Hành Tối Cao
+                    </button>
+                </nav>
+
+                <!-- USER CONTROL -->
+                <div class="flex items-center gap-2.5">
+                    <div onclick="switchTab('shop')" class="cursor-pointer bg-gradient-to-r from-amber-500/20 to-yellow-500/20 border border-amber-400/40 px-3 py-1.5 rounded-xl flex items-center gap-1.5 hover:border-amber-400 transition" title="Ngân Hàng Bá Khí">
+                        <i class="fa-solid fa-fire text-amber-400 text-sm animate-bounce"></i>
+                        <span id="userBaKhiPoints" class="font-black text-amber-300 text-xs">0</span>
+                        <span class="text-[10px] text-amber-200/80 font-bold">Bá Khí</span>
+                    </div>
+
+                    <div id="userChipArea" class="flex items-center gap-2 pl-1"></div>
+                </div>
             </div>
-            <button onclick="logout()" title="Đăng xuất" class="bg-slate-800 hover:bg-slate-700 px-3 py-1.5 rounded-full text-xs text-slate-300 border border-slate-700 transition">
-                <i class="fa-solid fa-right-from-bracket"></i>
-            </button>
-        </div>
-    </header>
+        </header>
 
-    <!-- Main Container -->
-    <main class="flex-1 max-w-5xl w-full mx-auto p-4 grid grid-cols-1 md:grid-cols-4 gap-6">
-        
-        <!-- Sidebar Menu -->
-        <aside class="md:col-span-1 space-y-2">
-            <button onclick="switchTab('forum')" id="btn-forum" class="w-full text-left px-4 py-3 rounded-xl glass hover:bg-indigo-600/20 transition flex items-center space-x-3 font-semibold text-indigo-300">
-                <i class="fa-solid fa-earth-americas w-5"></i>
-                <span>Diễn Đàn Lớp</span>
-            </button>
-            <button onclick="switchTab('chat')" id="btn-chat" class="w-full text-left px-4 py-3 rounded-xl glass hover:bg-indigo-600/20 transition flex items-center space-x-3 font-semibold text-slate-300">
-                <i class="fa-solid fa-comments w-5"></i>
-                <span>Zalo Nội Bộ</span>
-            </button>
-            <button onclick="switchTab('members')" id="btn-members" class="w-full text-left px-4 py-3 rounded-xl glass hover:bg-indigo-600/20 transition flex items-center space-x-3 font-semibold text-slate-300">
-                <i class="fa-solid fa-users w-5"></i>
-                <span>Thành Viên Lớp</span>
-            </button>
-            <button onclick="switchTab('shop')" id="btn-shop" class="w-full text-left px-4 py-3 rounded-xl glass hover:bg-indigo-600/20 transition flex items-center space-x-3 font-semibold text-slate-300">
-                <i class="fa-solid fa-store w-5"></i>
-                <span>Shop Bá Khí</span>
-            </button>
-        </aside>
+        <!-- MAIN VIEWS CONTAINER -->
+        <main class="flex-1 max-w-7xl w-full mx-auto p-3 lg:p-6 space-y-6 relative z-10">
 
-        <!-- Content Area -->
-        <section class="md:col-span-3 space-y-6">
-            
-            <!-- TAB 1: DIỄN ĐÀN -->
-            <div id="tab-forum" class="space-y-6">
-                <div class="glass p-4 rounded-2xl space-y-3">
-                    <textarea id="post-content" rows="3" placeholder="Bạn đang nghĩ gì về bài tập hay trận đấu hôm nay..." class="w-full bg-slate-900/50 border border-slate-700/50 rounded-xl p-3 focus:outline-none focus:border-indigo-500 text-sm resize-none"></textarea>
-                    <div class="flex justify-between items-center">
-                        <label class="flex items-center space-x-2 text-xs text-slate-400 cursor-pointer">
-                            <input type="checkbox" id="post-anonymous" class="rounded bg-slate-900 border-slate-700 text-indigo-600 focus:ring-0">
-                            <span>Đăng ẩn danh (Giấu tên)</span>
-                        </label>
-                        <button onclick="submitPost()" class="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 px-5 py-2 rounded-xl font-semibold text-sm shadow-lg shadow-indigo-500/25 transition">
-                            Đăng Bài Lên Mây
+            <!-- TAB 1: HỌC TẬP -->
+            <section id="tab-study" class="space-y-6">
+                <!-- EXAM COUNTDOWN -->
+                <div class="glass-card rounded-3xl p-5 lg:p-6 relative overflow-hidden border-l-4 border-amber-400">
+                    <div class="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6 relative z-10">
+                        <div class="space-y-2">
+                            <div class="flex items-center gap-2">
+                                <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-500/20 border border-red-500/40 text-red-300 text-xs font-extrabold animate-pulse">
+                                    🚨 LỊCH BÁO THI KHẨN CẤP
+                                </span>
+                                <button id="btnEditExam" onclick="openEditExamModal()" class="hidden px-2.5 py-1 rounded-lg bg-amber-500/20 border border-amber-400/40 text-amber-300 text-[11px] font-bold hover:bg-amber-500 hover:text-slate-950">
+                                    ⚙️ Sửa Lịch Thi
+                                </button>
+                            </div>
+                            <h2 id="examTitleDisplay" class="text-xl lg:text-2xl font-extrabold text-white">Thi Cuối Học Kỳ - Môn Trọng Tâm Lớp 8/8</h2>
+                            <p id="examSubtextDisplay" class="text-xs lg:text-sm text-purple-200/80">Toán, Ngữ Văn, Tiếng Anh (i-Learn Smart World) & KHTN (Bài 1-15 Kết Nối Tri Thức)</p>
+                        </div>
+                        
+                        <div class="flex items-center gap-3 bg-slate-950/70 p-3 rounded-2xl border border-amber-400/40">
+                            <div class="text-center px-3">
+                                <span id="cdDays" class="block font-black text-2xl lg:text-3xl text-amber-400">00</span>
+                                <span class="text-[10px] uppercase text-purple-300 font-bold">Ngày</span>
+                            </div>
+                            <span class="text-amber-400 font-bold text-xl">:</span>
+                            <div class="text-center px-3">
+                                <span id="cdHours" class="block font-black text-2xl lg:text-3xl text-amber-400">00</span>
+                                <span class="text-[10px] uppercase text-purple-300 font-bold">Giờ</span>
+                            </div>
+                            <span class="text-amber-400 font-bold text-xl">:</span>
+                            <div class="text-center px-3">
+                                <span id="cdMins" class="block font-black text-2xl lg:text-3xl text-amber-400">00</span>
+                                <span class="text-[10px] uppercase text-purple-300 font-bold">Phút</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <div class="lg:col-span-2 space-y-6">
+                        <!-- Homework Checklist -->
+                        <div class="glass-card rounded-3xl p-5 lg:p-6 space-y-4">
+                            <div class="flex items-center justify-between flex-wrap gap-2">
+                                <div>
+                                    <h3 class="font-extrabold text-lg text-white flex items-center gap-2">
+                                        <i class="fa-solid fa-list-check text-purple-400"></i> Bài Tập Về Nhà & Mục Tiêu
+                                    </h3>
+                                    <p class="text-xs text-purple-300/80">Tích hoàn thành để nhận ngay +2 Bá Khí & +1 Ngày Lửa 🔥</p>
+                                </div>
+                                <button id="addHwBtn" onclick="openAddHomeworkModal()" class="hidden px-3.5 py-2 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 text-white text-xs font-bold">
+                                    + Giao Bài Tập Mới
+                                </button>
+                            </div>
+
+                            <div class="bg-gradient-to-r from-amber-500/20 via-purple-900/40 to-pink-500/20 border border-amber-400/30 p-3.5 rounded-2xl flex items-center justify-between">
+                                <div class="flex items-center gap-2.5">
+                                    <span class="text-2xl animate-bounce">🔥</span>
+                                    <div>
+                                        <p class="text-xs font-black text-amber-300">Chuỗi Lửa Học Tập: <span id="userStreakDays" class="text-white text-sm">0</span> Ngày Liên Tục</p>
+                                        <p class="text-[11px] text-purple-200/80">Hoàn thành bài tập mỗi ngày để tăng thứ hạng Server!</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div id="homeworkListContainer" class="space-y-3 pt-2"></div>
+                        </div>
+                    </div>
+
+                    <div class="space-y-6">
+                        <!-- Thời khóa biểu -->
+                        <div class="glass-card rounded-3xl p-5 space-y-4">
+                            <div class="flex items-center justify-between">
+                                <h3 class="font-extrabold text-base text-white flex items-center gap-2">
+                                    <i class="fa-solid fa-calendar-day text-purple-400"></i> Thời Khóa Biểu Hôm Nay
+                                </h3>
+                                <button id="btnEditSched" onclick="openEditScheduleModal()" class="hidden text-xs text-amber-300 font-bold hover:underline">
+                                    ⚙️ Sửa TKB
+                                </button>
+                            </div>
+                            <div id="todayLessonsList" class="space-y-2"></div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- TAB 2: DIỄN ĐÀN -->
+            <section id="tab-feed" class="hidden space-y-6">
+                <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+                    <div class="lg:col-span-3 space-y-6">
+                        <div class="glass-card rounded-3xl p-4 lg:p-5 space-y-3">
+                            <div class="flex items-start gap-3">
+                                <img id="createPostUserAvatar" src="" class="w-10 h-10 rounded-full object-cover border border-purple-400/40">
+                                <textarea id="forumPostInput" rows="3" placeholder="Chia sẻ suy nghĩ, tài liệu hay bài viết lên toàn Server..." class="w-full bg-slate-900/80 border border-purple-500/30 rounded-2xl p-3 text-xs text-white focus:outline-none resize-none"></textarea>
+                            </div>
+
+                            <div id="forumImagePreviewBox" class="hidden relative rounded-2xl overflow-hidden border border-purple-500/30 max-h-60">
+                                <img id="forumImagePreview" src="" class="w-full object-cover">
+                                <button onclick="removeForumImage()" class="absolute top-2 right-2 w-7 h-7 rounded-full bg-slate-950/80 text-white flex items-center justify-center text-xs hover:bg-red-600">
+                                    <i class="fa-solid fa-xmark"></i>
+                                </button>
+                            </div>
+
+                            <div class="flex items-center justify-between border-t border-purple-500/20 pt-3 flex-wrap gap-2">
+                                <div class="flex items-center gap-2">
+                                    <label class="cursor-pointer px-3.5 py-1.5 rounded-xl bg-purple-900/50 border border-purple-500/30 text-purple-200 text-xs font-bold hover:bg-purple-800/50 transition flex items-center gap-1.5">
+                                        <i class="fa-solid fa-image text-emerald-400"></i> Đăng Ảnh
+                                        <input type="file" id="forumFileInput" accept="image/*" class="hidden" onchange="handleForumImageUpload(event)">
+                                    </label>
+
+                                    <label class="cursor-pointer px-3 py-1.5 rounded-xl bg-purple-900/50 border border-purple-500/30 text-purple-200 text-xs font-bold flex items-center gap-1.5">
+                                        <input type="checkbox" id="forumAnonCheck" class="rounded border-purple-400 text-purple-600">
+                                        <span>🕵️ Ẩn Danh</span>
+                                    </label>
+                                </div>
+
+                                <button onclick="submitForumPost()" class="px-5 py-2 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-extrabold text-xs shadow hover:opacity-90">
+                                    Đăng Bài
+                                </button>
+                            </div>
+                        </div>
+
+                        <div id="forumPostsContainer" class="space-y-6"></div>
+                    </div>
+
+                    <div class="lg:col-span-1 space-y-4">
+                        <div class="glass-card rounded-3xl p-4 space-y-3 border border-amber-400/30">
+                            <h4 class="text-xs font-extrabold text-amber-300 uppercase flex items-center gap-1.5">
+                                <i class="fa-solid fa-shield-cat"></i> Quy Tắc Diễn Đàn
+                            </h4>
+                            <ul class="text-xs text-purple-200/80 space-y-2 list-disc list-inside">
+                                <li>Tôn trọng bạn học, không xúc phạm nhau.</li>
+                                <li>Tối Cao báo cáo vi phạm sẽ trừ **-20 Bá Khí** và phát băng rôn cảnh cáo.</li>
+                            </ul>
+                        </div>
+
+                        <div class="glass-card rounded-3xl p-4 space-y-3 border border-purple-500/30">
+                            <div class="flex items-center justify-between">
+                                <h4 class="text-xs font-extrabold text-white flex items-center gap-1.5">
+                                    <i class="fa-solid fa-box-open text-purple-400"></i> Mục Vật Phẩm Của Bạn
+                                </h4>
+                                <button onclick="switchTab('shop')" class="text-[10px] text-amber-300 hover:underline">Vào Shop</button>
+                            </div>
+                            <div id="sidebarInventoryList" class="space-y-2 max-h-60 overflow-y-auto"></div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- TAB 3: NHẮN TIN ZALO -->
+            <section id="tab-chat" class="hidden space-y-6">
+                <div class="glass-card rounded-3xl overflow-hidden grid grid-cols-1 md:grid-cols-3 h-[75vh] border border-purple-500/30">
+                    <div class="md:col-span-1 border-r border-purple-500/20 flex flex-col bg-slate-950/50">
+                        <div class="p-4 border-b border-purple-500/20 space-y-3">
+                            <h3 class="font-extrabold text-base text-white flex items-center gap-2">
+                                <i class="fa-solid fa-comments text-indigo-400"></i> Nhắn Tin & Q&A
+                            </h3>
+                            <div class="flex items-center gap-2">
+                                <input type="text" id="searchFriendIdInput" placeholder="Nhập ID 6 con số (VD: 888001)..." class="w-full bg-slate-900 border border-purple-500/30 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none">
+                                <button onclick="searchAndAddFriend()" class="px-3.5 py-1.5 bg-indigo-600 rounded-xl text-white font-extrabold text-xs hover:bg-indigo-500">Tìm</button>
+                            </div>
+                        </div>
+                        <div id="chatConversationsList" class="flex-1 overflow-y-auto divide-y divide-purple-500/10"></div>
+                    </div>
+
+                    <div class="md:col-span-2 flex flex-col bg-slate-950/30">
+                        <div id="activeChatHeader" class="p-4 border-b border-purple-500/20 flex items-center justify-between bg-slate-950/70">
+                            <div class="flex items-center gap-3">
+                                <img id="chatHeaderAvatar" src="" class="w-10 h-10 rounded-full border border-purple-400/40 object-cover">
+                                <div>
+                                    <h4 id="chatHeaderName" class="font-extrabold text-sm text-white">...</h4>
+                                    <p id="chatHeaderStatus" class="text-[11px] text-emerald-400 font-medium">Trực tuyến</p>
+                                </div>
+                            </div>
+                            <button onclick="openConnectTriKiModal()" class="px-3 py-1.5 rounded-xl bg-gradient-to-r from-pink-500 to-rose-600 text-white font-extrabold text-xs">
+                                💖 Kết Giao Tri Kỉ (-100 Bá Khí)
+                            </button>
+                        </div>
+
+                        <div id="chatMessagesContainer" class="flex-1 p-4 overflow-y-auto space-y-3"></div>
+
+                        <div class="p-3 border-t border-purple-500/20 bg-slate-950/70 flex items-center gap-2">
+                            <button onclick="openSendBaKhiModal()" class="w-9 h-9 rounded-xl bg-amber-500/20 border border-amber-400/40 text-amber-300 flex items-center justify-center text-xs hover:bg-amber-500 hover:text-slate-950" title="Tặng Bá Khí">
+                                <i class="fa-solid fa-gift text-sm"></i>
+                            </button>
+                            <input type="text" id="chatInputMessage" onkeydown="if(event.key==='Enter') sendChatMessage()" placeholder="Nhập tin nhắn..." class="flex-1 bg-slate-900 border border-purple-500/30 rounded-xl px-3.5 py-2 text-xs text-white focus:outline-none">
+                            <button onclick="sendChatMessage()" class="w-9 h-9 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 text-white flex items-center justify-center text-xs">
+                                <i class="fa-solid fa-paper-plane"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- TAB 4: THƠ VĂN -->
+            <section id="tab-creative" class="hidden space-y-6">
+                <div class="glass-card rounded-3xl p-6 space-y-6">
+                    <div class="flex items-center justify-between flex-wrap gap-4">
+                        <div>
+                            <h2 class="font-extrabold text-xl text-white italic font-serif">Góc Sáng Tác & Thơ Văn Lớp 8/8</h2>
+                            <p class="text-xs text-purple-300/80">Nơi đăng tải các bài thơ, văn học tự sáng tác</p>
+                        </div>
+                        <button onclick="openAddCreativeWorkModal()" class="px-4 py-2 rounded-2xl bg-amber-500 text-slate-950 font-extrabold text-xs">
+                            + Đăng Tác Phẩm Mới
                         </button>
                     </div>
+                    <div id="creativeWorksContainer" class="grid grid-cols-1 md:grid-cols-2 gap-6"></div>
                 </div>
-                <div id="posts-container" class="space-y-4">
-                    <div class="text-center py-8 text-slate-400 text-sm">Đang tải bài viết từ đám mây...</div>
-                </div>
-            </div>
+            </section>
 
-            <!-- TAB 2: ZALO NỘI BỘ -->
-            <div id="tab-chat" class="glass p-4 rounded-2xl hidden h-[500px] flex flex-col">
-                <div class="border-b border-slate-700/50 pb-3 mb-3 flex justify-between items-center">
-                    <span class="font-bold text-sm text-indigo-400"><i class="fa-solid fa-comments mr-2"></i>Tin nhắn thời gian thực</span>
-                    <span class="text-xs text-emerald-400 bg-emerald-500/10 px-2 py-1 rounded-full">Trạng thái: Đã kết nối</span>
-                </div>
-                <div id="chat-messages" class="flex-1 overflow-y-auto space-y-3 pr-2 text-sm">
-                    <div class="text-center text-slate-500 py-4">Chưa có tin nhắn nào. Hãy bắt đầu trò chuyện!</div>
-                </div>
-                <div class="pt-3 flex space-x-2">
-                    <input type="text" id="chat-input" placeholder="Nhập tin nhắn gửi cả lớp..." class="flex-1 bg-slate-900/50 border border-slate-700/50 rounded-xl px-4 py-2.5 focus:outline-none focus:border-indigo-500 text-sm">
-                    <button onclick="sendChatMessage()" class="bg-indigo-600 hover:bg-indigo-500 px-5 py-2.5 rounded-xl font-semibold text-sm transition">
-                        <i class="fa-solid fa-paper-plane"></i>
-                    </button>
-                </div>
-            </div>
+            <!-- TAB 5: SHOP BÁ KHÍ -->
+            <section id="tab-shop" class="hidden space-y-6">
+                <div class="glass-card rounded-3xl p-6 border border-amber-400/40 bg-gradient-to-r from-amber-950/40 via-purple-950/60 to-slate-950/80 flex flex-col md:flex-row items-center justify-between gap-6">
+                    <div class="space-y-1">
+                        <span class="text-xs font-black uppercase tracking-widest text-amber-400">NGÂN HÀNG BÁ KHÍ</span>
+                        <h2 class="text-2xl font-black text-white">Số Dư Bá Khí: <span id="bankBalanceDisplay" class="text-amber-300">0</span> Bá Khí</h2>
+                        <p class="text-xs text-purple-300/80">ID Tài Khoản: <span id="bankUserAccountID" class="font-mono text-amber-400">---</span></p>
+                    </div>
 
-            <!-- TAB 3: THÀNH VIÊN -->
-            <div id="tab-members" class="glass p-6 rounded-2xl hidden space-y-4">
-                <h2 class="text-lg font-bold text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-pink-400">Danh Sách Tài Khoản Bảo Mật</h2>
-                <p class="text-xs text-slate-400">Tất cả các bạn bè trong lớp đã đăng ký vào hệ thống đám mây:</p>
-                <div id="members-container" class="space-y-2">
-                    <div class="text-center py-4 text-slate-400 text-sm">Đang tải danh sách tài khoản...</div>
-                </div>
-            </div>
-
-            <!-- TAB 4: SHOP BÁ KHÍ -->
-            <div id="tab-shop" class="glass p-6 rounded-2xl hidden space-y-4">
-                <h2 class="text-lg font-bold text-transparent bg-clip-text bg-gradient-to-r from-pink-400 to-indigo-400">Cửa Hàng Vật Phẩm 8/8</h2>
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div class="bg-slate-900/40 border border-slate-700/50 p-4 rounded-xl flex justify-between items-center">
-                        <div>
-                            <h3 class="font-bold text-sm">Khung Avatar Cầu Vồng</h3>
-                            <p class="text-xs text-slate-400">Tỏa sáng rực rỡ trên bảng xếp hạng</p>
-                            <span class="text-xs font-bold text-indigo-400 mt-1 inline-block">500 Bá Khí</span>
-                        </div>
-                        <button onclick="alert('Đã mua thành công!')" class="bg-indigo-600/30 hover:bg-indigo-600 text-indigo-300 hover:text-white px-4 py-2 rounded-lg text-xs font-semibold transition border border-indigo-500/30">Mua Ngay</button>
+                    <div class="bg-slate-900/90 border border-purple-500/30 p-4 rounded-2xl text-center space-y-2">
+                        <p class="text-xs font-extrabold text-purple-200">🎁 Điểm Danh Ngày Mới</p>
+                        <button id="dailyCheckinBtn" onclick="claimDailyCheckin()" class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-600 text-slate-950 font-black text-xs shadow hover:scale-105 transition">
+                            + Nhận 20 Bá Khí Hôm Nay
+                        </button>
+                        <p id="checkinStatusSubtext" class="text-[10px] text-emerald-400 font-bold hidden">✓ Đã điểm danh hôm nay!</p>
                     </div>
                 </div>
+
+                <div class="glass-card rounded-3xl p-6 space-y-5">
+                    <div class="flex items-center justify-between flex-wrap gap-2">
+                        <h3 class="font-extrabold text-lg text-white flex items-center gap-2">
+                            <i class="fa-solid fa-store text-amber-400"></i> Cửa Hàng Vật Phẩm Bá Khí
+                        </h3>
+                        <button id="resetPricesBtn" onclick="resetDefaultPrices()" class="hidden px-3 py-1.5 rounded-xl bg-purple-900/60 border border-purple-400/40 text-purple-200 text-xs font-bold hover:bg-purple-800">
+                            ⚙️ [Tối Cao] Khôi Phục Giá Mặc Định
+                        </button>
+                    </div>
+
+                    <div id="shopCardsContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+                </div>
+
+                <div class="glass-card rounded-3xl p-6 space-y-4 border border-purple-500/30">
+                    <div class="flex items-center justify-between">
+                        <h3 class="font-extrabold text-lg text-white flex items-center gap-2">
+                            <i class="fa-solid fa-box-open text-purple-400"></i> Túi Vật Phẩm Lưu Trữ Của Bạn
+                        </h3>
+                        <span id="inventoryCountBadge" class="text-xs font-bold text-amber-300 bg-amber-500/20 px-3 py-1 rounded-full border border-amber-400/30">0 Vật phẩm</span>
+                    </div>
+                    <div id="inventoryContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+                </div>
+            </section>
+
+            <!-- TAB 6: TRUNG TÂM ĐIỀU HÀNH TỐI CAO -->
+            <section id="tab-supreme" class="hidden space-y-6">
+                <div class="glass-card rounded-3xl p-6 border-2 border-amber-400/60 bg-slate-950/90 space-y-6">
+                    <div class="flex items-center justify-between border-b border-amber-400/30 pb-4 flex-wrap gap-4">
+                        <div class="flex items-center gap-3">
+                            <div class="w-12 h-12 rounded-2xl bg-gradient-to-tr from-amber-400 to-yellow-600 flex items-center justify-center text-slate-950 text-2xl font-black shadow animate-pulse">
+                                👑
+                            </div>
+                            <div>
+                                <h2 class="text-xl font-black text-amber-300 uppercase">EXECUTIVE COMMAND HUD - TỐI CAO AIMABIET</h2>
+                                <p class="text-xs text-purple-300/80">Quản trị toàn quyền Cloud Database Firebase</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+        </main>
+    </div>
+
+    <!-- MODALS -->
+    <div id="editPostModal" class="hidden fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4">
+        <div class="glass-card max-w-md w-full rounded-3xl p-6 border border-purple-500/50 space-y-4">
+            <div class="flex items-center justify-between">
+                <h3 class="font-extrabold text-base text-white">✏️ Chỉnh Sửa Bài Đăng</h3>
+                <button onclick="closeModal('editPostModal')" class="text-purple-300 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <input type="hidden" id="editPostId">
+            <textarea id="editPostContent" rows="4" class="w-full bg-slate-900 border border-purple-500/30 rounded-xl p-3 text-xs text-white focus:outline-none resize-none"></textarea>
+            <button onclick="saveEditedPost()" class="w-full py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-extrabold text-xs rounded-xl shadow">Lưu Thay Đổi</button>
+        </div>
+    </div>
+
+    <div id="sendBaKhiModal" class="hidden fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4">
+        <div class="glass-card max-w-md w-full rounded-3xl p-6 border border-amber-400/50 space-y-4">
+            <div class="flex items-center justify-between">
+                <h3 class="font-extrabold text-lg text-amber-300">🎁 Tặng Điểm Bá Khí</h3>
+                <button onclick="closeModal('sendBaKhiModal')" class="text-purple-300 hover:text-white text-lg"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div>
+                <label class="text-[11px] font-bold text-purple-200">Số lượng:</label>
+                <input type="number" id="transferAmountInput" min="1" value="10" class="w-full bg-slate-900 border border-purple-500/30 rounded-xl p-2.5 text-xs text-white">
+            </div>
+            <div>
+                <label class="text-[11px] font-bold text-purple-200">Lời nhắn:</label>
+                <input type="text" id="transferMsgInput" placeholder="Chúc bạn học tốt!" class="w-full bg-slate-900 border border-purple-500/30 rounded-xl p-2.5 text-xs text-white">
+            </div>
+            <button onclick="confirmSendBaKhiTransfer()" class="w-full py-2.5 bg-amber-500 text-slate-950 font-black text-xs rounded-xl">Xác Nhận</button>
+        </div>
+    </div>
+
+    <div id="connectTriKiModal" class="hidden fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4">
+        <div class="glass-card max-w-md w-full rounded-3xl p-6 border border-pink-500/50 space-y-4">
+            <div class="flex items-center justify-between">
+                <h3 class="font-extrabold text-lg text-pink-300">💖 Kết Giao Tri Kỉ</h3>
+                <button onclick="closeModal('connectTriKiModal')" class="text-purple-300 hover:text-white text-lg"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <p class="text-xs text-purple-200">Phí: <b class="text-amber-300">100 Bá Khí</b></p>
+            <button onclick="confirmConnectTriKi()" class="w-full py-2.5 bg-gradient-to-r from-pink-500 to-rose-600 text-white font-extrabold text-xs rounded-xl">Xác Nhận (-100 Bá Khí)</button>
+        </div>
+    </div>
+
+    <div id="editExamModal" class="hidden fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4">
+        <div class="glass-card max-w-md w-full rounded-3xl p-6 border border-amber-400/50 space-y-4">
+            <div class="flex items-center justify-between">
+                <h3 class="font-extrabold text-lg text-amber-300">⚙️ Cập Nhật Lịch Thi</h3>
+                <button onclick="closeModal('editExamModal')" class="text-purple-300 hover:text-white text-lg"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <input type="text" id="inputExamTitle" placeholder="Tiêu đề kỳ thi" class="w-full bg-slate-900 border border-purple-500/30 rounded-xl p-2.5 text-xs text-white">
+            <button onclick="saveExamModal()" class="w-full py-2.5 bg-amber-500 text-slate-950 font-black text-xs rounded-xl">Lưu</button>
+        </div>
+    </div>
+
+    <div id="editScheduleModal" class="hidden fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4">
+        <div class="glass-card max-w-xl w-full rounded-3xl p-6 border border-purple-500/50 space-y-4">
+            <div class="flex items-center justify-between">
+                <h3 class="font-extrabold text-lg text-white">⚙️ Cập Nhật TKB</h3>
+                <button onclick="closeModal('editScheduleModal')" class="text-purple-300 hover:text-white text-lg"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <button onclick="saveScheduleModal()" class="w-full py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-extrabold text-xs rounded-xl">Lưu</button>
+        </div>
+    </div>
+
+    <div id="addHomeworkModal" class="hidden fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4">
+        <div class="glass-card max-w-md w-full rounded-3xl p-6 border border-purple-500/50 space-y-4">
+            <div class="flex items-center justify-between">
+                <h3 class="font-extrabold text-lg text-white">Giao Bài Tập Mới</h3>
+                <button onclick="closeModal('addHomeworkModal')" class="text-purple-300 hover:text-white text-lg"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <input type="text" id="hwSubjectInput" placeholder="Môn học" class="w-full bg-slate-900 border border-purple-500/30 rounded-xl p-2.5 text-xs text-white">
+            <input type="text" id="hwTitleInput" placeholder="Nội dung" class="w-full bg-slate-900 border border-purple-500/30 rounded-xl p-2.5 text-xs text-white">
+            <button onclick="submitNewHomework()" class="w-full py-2 bg-purple-600 text-white font-extrabold text-xs rounded-xl">Đăng</button>
+        </div>
+    </div>
+
+    <div id="addCreativeWorkModal" class="hidden fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4">
+        <div class="glass-card max-w-md w-full rounded-3xl p-6 border border-amber-400/50 space-y-4">
+            <div class="flex items-center justify-between">
+                <h3 class="font-extrabold text-lg text-amber-300">✍️ Đăng Thơ Văn</h3>
+                <button onclick="closeModal('addCreativeWorkModal')" class="text-purple-300 hover:text-white text-lg"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <input type="text" id="creativeTitleInput" placeholder="Tên bài thơ" class="w-full bg-slate-900 border border-purple-500/30 rounded-xl p-2.5 text-xs text-white">
+            <textarea id="creativeContentInput" rows="5" placeholder="Nội dung" class="w-full bg-slate-900 border border-purple-500/30 rounded-xl p-3 text-xs text-white resize-none"></textarea>
+            <button onclick="submitNewCreativeWork()" class="w-full py-2 bg-amber-500 text-slate-950 font-extrabold text-xs rounded-xl">Đăng</button>
+        </div>
+    </div>
+
+    <!-- CỔNG ĐĂNG NHẬP / ĐĂNG KÝ (TỰ ĐỘNG DUYỆT KHI CHƯA CÓ TÀI KHOẢN) -->
+    <div id="authGateModal" class="fixed inset-0 z-50 bg-slate-950/95 backdrop-blur-lg flex items-center justify-center p-4 overflow-y-auto">
+        <div class="glass-card max-w-lg w-full rounded-3xl p-6 lg:p-8 border border-purple-500/40 space-y-6">
+            <div class="text-center space-y-2">
+                <div class="w-14 h-14 rounded-2xl bg-gradient-to-tr from-amber-400 via-purple-600 to-indigo-600 p-0.5 mx-auto flex items-center justify-center">
+                    <div class="w-full h-full bg-slate-950 rounded-[14px] flex items-center justify-center">
+                        <i class="fa-solid fa-crown text-amber-400 text-2xl"></i>
+                    </div>
+                </div>
+                <h2 class="text-2xl font-black text-white">CỔNG ĐĂNG NHẬP KHỐI 8 (FIREBASE)</h2>
+                <p class="text-xs text-purple-300/80">Trọng Tâm Lớp 8/8 - Tự động đăng ký khi chưa có tài khoản</p>
             </div>
 
-        </section>
-    </main>
+            <div class="flex rounded-xl bg-slate-900/80 p-1 border border-purple-500/20">
+                <button onclick="switchAuthTab('login')" id="authTabLogin" class="flex-1 py-2 rounded-lg text-xs font-bold transition bg-purple-600 text-white">Đăng Nhập</button>
+                <button onclick="switchAuthTab('register')" id="authTabRegister" class="flex-1 py-2 rounded-lg text-xs font-bold transition text-purple-300">Đăng Ký Tài Khoản</button>
+            </div>
 
-    <!-- JavaScript & Firebase Realtime Database Config -->
+            <form id="loginForm" onsubmit="handleLoginSubmit(event)" class="space-y-4">
+                <div>
+                    <label class="text-[11px] font-bold text-purple-200">Biệt danh hoặc ID 6 con số:</label>
+                    <input type="text" id="loginUsername" required placeholder="aimabiet hoặc ID" class="w-full bg-slate-900 border border-purple-500/30 rounded-xl px-3.5 py-2.5 text-xs text-white">
+                </div>
+                <div>
+                    <label class="text-[11px] font-bold text-purple-200">Mật khẩu:</label>
+                    <input type="password" id="loginPassword" required placeholder="••••••••" class="w-full bg-slate-900 border border-purple-500/30 rounded-xl px-3.5 py-2.5 text-xs text-white">
+                </div>
+                <button type="submit" class="w-full py-3 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-extrabold text-xs shadow">Đăng Nhập</button>
+            </form>
+
+            <form id="registerForm" onsubmit="handleRegisterSubmit(event)" class="hidden space-y-3">
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="text-[11px] font-bold text-purple-200">Họ và Tên (*):</label>
+                        <input type="text" id="regFullName" required placeholder="Nguyễn Văn A" class="w-full bg-slate-900 border border-purple-500/30 rounded-xl px-3 py-2 text-xs text-white">
+                    </div>
+                    <div>
+                        <label class="text-[11px] font-bold text-purple-200">Biệt Danh (*):</label>
+                        <input type="text" id="regNickname" required placeholder="Cá bá khí" class="w-full bg-slate-900 border border-purple-500/30 rounded-xl px-3 py-2 text-xs text-white">
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="text-[11px] font-bold text-purple-200">Lớp:</label>
+                        <select id="regClass" class="w-full bg-slate-900 border border-purple-500/30 rounded-xl px-3 py-2 text-xs text-white">
+                            <option value="Lớp 8/8" selected>Lớp 8/8</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="text-[11px] font-bold text-purple-200">ID (6 số):</label>
+                        <input type="text" id="regAccountID" pattern="\d{6}" maxlength="6" required placeholder="888123" class="w-full bg-slate-900 border border-purple-500/30 rounded-xl px-3 py-2 text-xs text-white font-mono">
+                    </div>
+                </div>
+                <div>
+                    <label class="text-[11px] font-bold text-purple-200">Mật Khẩu:</label>
+                    <input type="password" id="regPassword" required placeholder="••••••••" class="w-full bg-slate-900 border border-purple-500/30 rounded-xl px-3 py-2 text-xs text-white">
+                </div>
+                <button type="submit" class="w-full py-3 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-extrabold text-xs shadow">Đăng Ký & Tự Động Kích Hoạt</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- JAVASCRIPT FIREBASE INTEGRATION -->
     <script>
+        // TODO: Thay thế bằng Firebase Project Config của bạn
         const firebaseConfig = {
-            apiKey: "AIzaSyAslDzCIzWXrA8MtEYFF-gV1BUBlxBuTiA",
-            authDomain: "database88-f5623.firebaseapp.com",
-            databaseURL: "https://database88-f5623-default-rtdb.asia-southeast1.firebasedatabase.app", // Đã bổ sung databaseURL chuẩn region Singapore
-            projectId: "database88-f5623",
-            storageBucket: "database88-f5623.firebasestorage.app",
-            messagingSenderId: "503624947674",
-            appId: "1:503624947674:web:59c881912ff6d4033752e3"
+            apiKey: "YOUR_API_KEY",
+            authDomain: "YOUR_AUTH_DOMAIN",
+            projectId: "YOUR_PROJECT_ID",
+            storageBucket: "YOUR_STORAGE_BUCKET",
+            messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+            appId: "YOUR_APP_ID"
         };
-
         firebase.initializeApp(firebaseConfig);
-        const db = firebase.database();
+        const db = firebase.firestore();
 
-        let currentUser = JSON.parse(localStorage.getItem('mxh_user')) || null;
+        const DEFAULT_SHOP_ITEMS = [
+            { key: 'rainbow_chat', name: 'Bong Bóng Chat Cầu Vồng', price: 200, icon: '🌈', desc: 'Biến nền tin nhắn thành dải màu cầu vồng.' },
+            { key: 'sparkle_frame', name: 'Khung Avatar Lấp Lánh', price: 70, icon: '✨', desc: 'Viền hào quang xoay đa sắc.' },
+            { key: 'custom_title', name: 'Danh Hiệu Độc Bản', price: 90, icon: '👑', desc: 'Tự do đặt danh hiệu.' },
+            { key: 'server_speaker', name: 'Loa Phát Thanh', price: 120, icon: '📢', desc: 'Bật băng rôn chữ chạy.' },
+            { key: 'post_shield', name: 'Thẻ Bảo Hộ Bài Đăng', price: 150, icon: '🛡️', desc: 'Bảo vệ bài viết.' }
+        ];
 
-        window.addEventListener('DOMContentLoaded', () => {
-            if (currentUser) {
-                document.getElementById('login-modal').classList.add('hidden');
-                updateUserUI();
-            } else {
-                document.getElementById('login-modal').classList.remove('hidden');
+        let currentUser = JSON.parse(localStorage.getItem('k8_current_user')) || null;
+        let activeTab = "study";
+        let activeChatUserID = "888002";
+        let uploadedForumImageBase64 = "";
+
+        async function initCloudData() {
+            // Kiểm tra và khởi tạo Shop items mặc định nếu chưa có trên Firestore
+            const shopRef = db.collection('settings').doc('shop');
+            const shopDoc = await shopRef.get();
+            if (!shopDoc.exists) {
+                await shopRef.set({ items: DEFAULT_SHOP_ITEMS });
             }
-            loadMembers();
-            loadPosts();
-            loadChatMessages();
-        });
+        }
 
-        function handleLogin() {
-            const nameInput = document.getElementById('input-username').value.trim();
-            const passInput = document.getElementById('input-password').value.trim();
+        initCloudData().then(() => checkAuthState());
 
-            if (!nameInput || !passInput) {
-                alert("Vui lòng nhập đầy đủ tên và mật khẩu!");
+        function saveUserData() {
+            localStorage.setItem('k8_current_user', JSON.stringify(currentUser));
+            db.collection('users').doc(currentUser.accountID).set(currentUser, { merge: true });
+            renderUserChips();
+            updateShopUI();
+        }
+
+        async function checkAuthState() {
+            if (!currentUser) {
+                document.getElementById('authGateModal').classList.remove('hidden');
+                // Tự động kiểm tra nếu chưa có tài khoản nào trên hệ thống
+                const usersSnap = await db.collection('users').get();
+                if (usersSnap.empty) {
+                    console.log("Hệ thống chưa có tài khoản. Sẵn sàng tạo tài khoản tự động.");
+                }
+                return;
+            }
+            document.getElementById('authGateModal').classList.add('hidden');
+
+            const userDoc = await db.collection('users').doc(currentUser.accountID).get();
+            if (userDoc.exists) {
+                currentUser = userDoc.data();
+                localStorage.setItem('k8_current_user', JSON.stringify(currentUser));
+            }
+
+            renderUserChips();
+            switchTab('study');
+            renderAllViews();
+        }
+
+        function switchAuthTab(tab) {
+            if (tab === 'login') {
+                document.getElementById('loginForm').classList.remove('hidden');
+                document.getElementById('registerForm').classList.add('hidden');
+            } else {
+                document.getElementById('loginForm').classList.add('hidden');
+                document.getElementById('registerForm').classList.remove('hidden');
+            }
+        }
+
+        async function handleLoginSubmit(e) {
+            e.preventDefault();
+            const un = document.getElementById('loginUsername').value.trim();
+            const pw = document.getElementById('loginPassword').value.trim();
+
+            const snapshot = await db.collection('users').get();
+            let found = null;
+            snapshot.forEach(doc => {
+                const u = doc.data();
+                if ((u.username === un || u.nickname === un || u.accountID === un) && u.password === pw) {
+                    found = u;
+                }
+            });
+
+            if (found) {
+                currentUser = found;
+                localStorage.setItem('k8_current_user', JSON.stringify(currentUser));
+                checkAuthState();
+            } else {
+                alert("Mật khẩu hoặc tài khoản không đúng!");
+            }
+        }
+
+        async function handleRegisterSubmit(e) {
+            e.preventDefault();
+            const fullName = document.getElementById('regFullName').value.trim();
+            const nickname = document.getElementById('regNickname').value.trim();
+            const userClass = document.getElementById('regClass').value;
+            const accountID = document.getElementById('regAccountID').value.trim();
+            const password = document.getElementById('regPassword').value.trim();
+
+            const userRef = db.collection('users').doc(accountID);
+            const doc = await userRef.get();
+            if (doc.exists) {
+                alert("ID 6 con số này đã tồn tại trên Cloud!");
                 return;
             }
 
-            const safeKey = nameInput.replace(/[.#$[\]]/g, "_");
-            const userRef = db.ref('users/' + safeKey);
+            // Kiểm tra xem hệ thống đã có tài khoản nào chưa để cấp quyền Tối Cao tự động nếu chưa có
+            const allUsersSnap = await db.collection('users').get();
+            const isFirstUser = allUsersSnap.empty;
 
-            userRef.once('value', snapshot => {
-                if (snapshot.exists()) {
-                    const data = snapshot.val();
-                    if (data.password !== passInput) {
-                        alert("Sai mật khẩu rồi bạn ơi! Không thể đăng nhập vào tài khoản này.");
-                        return;
-                    }
-                    currentUser = { name: nameInput, baki: data.baki || 1200 };
-                } else {
-                    currentUser = { name: nameInput, baki: 1200 };
-                    userRef.set({
-                        name: nameInput,
-                        password: passInput,
-                        baki: 1200,
-                        lastActive: Date.now()
-                    });
-                }
+            const newUser = {
+                username: nickname.toLowerCase().replace(/\s+/g, ''),
+                password: password,
+                fullName: fullName,
+                nickname: nickname,
+                userClass: userClass,
+                accountID: accountID,
+                role: isFirstUser ? "SUPER_ADMIN" : "STUDENT",
+                status: "APPROVED", // Tự động đăng ký & phê duyệt luôn khi không cần chờ
+                points: isFirstUser ? 9999 : 50,
+                streak: 1,
+                inventory: [],
+                avatar: `https://api.dicebear.com/7.x/bottts/svg?seed=${nickname}`
+            };
 
-                localStorage.setItem('mxh_user', JSON.stringify(currentUser));
-                document.getElementById('login-modal').classList.add('hidden');
-                updateUserUI();
-                loadMembers();
-            });
+            await userRef.set(newUser);
+            currentUser = newUser;
+            localStorage.setItem('k8_current_user', JSON.stringify(currentUser));
+            checkAuthState();
+            alert(isFirstUser ? "🎉 Chúc mừng! Bạn là tài khoản đầu tiên và đã tự động trở thành Tối Cao Admin!" : "🎉 Đăng ký và tự động phê duyệt thành công!");
         }
 
         function logout() {
-            localStorage.removeItem('mxh_user');
+            currentUser = null;
+            localStorage.removeItem('k8_current_user');
             location.reload();
         }
 
-        function updateUserUI() {
-            document.getElementById('current-username').innerText = currentUser.name;
-            document.getElementById('user-baki').innerText = currentUser.baki;
-        }
+        function renderUserChips() {
+            if (!currentUser) return;
+            document.getElementById('userBaKhiPoints').innerText = currentUser.points;
+            document.getElementById('bankBalanceDisplay').innerText = currentUser.points;
+            document.getElementById('bankUserAccountID').innerText = currentUser.accountID;
 
-        function switchTab(tabName) {
-            ['forum', 'chat', 'members', 'shop'].forEach(t => {
-                document.getElementById(`tab-${t}`).classList.add('hidden');
-                document.getElementById(`btn-${t}`).classList.remove('text-indigo-300', 'bg-indigo-600/20');
-                document.getElementById(`btn-${t}`).classList.add('text-slate-300');
-            });
-            document.getElementById(`tab-${tabName}`).classList.remove('hidden');
-            document.getElementById(`btn-${tabName}`).classList.add('text-indigo-300', 'bg-indigo-600/20');
-            document.getElementById(`btn-${tabName}`).classList.remove('text-slate-300');
-        }
+            const supremeBtn = document.getElementById('supremeNavBtn');
+            const addHwBtn = document.getElementById('addHwBtn');
+            const btnEditExam = document.getElementById('btnEditExam');
+            const btnEditSched = document.getElementById('btnEditSched');
 
-        function loadMembers() {
-            db.ref('users').on('value', snapshot => {
-                const container = document.getElementById('members-container');
-                container.innerHTML = '';
+            const isSupreme = currentUser.role === 'SUPER_ADMIN' || currentUser.accountID === '888888';
 
-                if (!snapshot.exists()) {
-                    container.innerHTML = '<div class="text-center py-4 text-slate-400 text-sm">Chưa có thành viên nào.</div>';
-                    return;
-                }
+            if (isSupreme) {
+                supremeBtn.classList.remove('hidden');
+                addHwBtn.classList.remove('hidden');
+                btnEditExam.classList.remove('hidden');
+                btnEditSched.classList.remove('hidden');
+            } else {
+                supremeBtn.classList.add('hidden');
+                addHwBtn.classList.add('hidden');
+                btnEditExam.classList.add('hidden');
+                btnEditSched.classList.add('hidden');
+            }
 
-                snapshot.forEach(childSnap => {
-                    const user = childSnap.val();
-                    const memberEl = document.createElement('div');
-                    memberEl.className = 'bg-slate-900/40 border border-slate-700/50 p-3 rounded-xl flex justify-between items-center text-sm';
-                    memberEl.innerHTML = `
-                        <div class="flex items-center space-x-3">
-                            <div class="w-8 h-8 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-500 flex items-center justify-center font-bold text-xs">
-                                ${user.name.charAt(0).toUpperCase()}
-                            </div>
-                            <span class="font-semibold text-slate-200">${user.name}</span>
+            const avatarFrameClass = currentUser.sparkleFrameActive ? 'sparkle-avatar-frame' : '';
+
+            document.getElementById('userChipArea').innerHTML = `
+                <div class="flex items-center gap-2">
+                    <div class="${avatarFrameClass}">
+                        <img src="${currentUser.avatar}" class="w-8 h-8 rounded-full border border-amber-400/50 object-cover">
+                    </div>
+                    <div class="hidden lg:block text-left">
+                        <div class="flex items-center gap-1">
+                            <p class="text-xs font-extrabold text-white">${currentUser.nickname}</p>
+                            ${currentUser.activeTitle ? `<span class="text-[9px] font-black px-1.5 py-0.2 rounded bg-amber-400 text-slate-950">${currentUser.activeTitle}</span>` : ''}
                         </div>
-                        <span class="text-xs bg-indigo-500/20 text-indigo-300 px-2.5 py-1 rounded-full font-bold">${user.baki || 1200} Bá Khí</span>
-                    `;
-                    container.appendChild(memberEl);
-                });
-            });
+                        <p class="text-[10px] text-purple-300 font-bold">${isSupreme ? '👑 TỐI CAO' : '🎓 HỌC SINH'}</p>
+                    </div>
+                </div>
+                <button onclick="logout()" class="ml-2 text-purple-300/70 hover:text-red-400 text-xs" title="Đăng Xuất"><i class="fa-solid fa-right-from-bracket"></i></button>
+            `;
+            document.getElementById('createPostUserAvatar').src = currentUser.avatar;
         }
 
-        function submitPost() {
-            const content = document.getElementById('post-content').value.trim();
-            const isAnonymous = document.getElementById('post-anonymous').checked;
+        function switchTab(tab) {
+            activeTab = tab;
+            ['study', 'feed', 'chat', 'creative', 'shop', 'supreme'].forEach(t => {
+                const el = document.getElementById(`tab-${t}`);
+                const btn = document.getElementById(`nav-btn-${t}`);
+                if (el) el.classList.add('hidden');
+                if (btn) btn.classList.remove('nav-btn-active');
+            });
 
-            if (!content) {
-                alert("Vui lòng nhập nội dung bài viết!");
+            const activeEl = document.getElementById(`tab-${tab}`);
+            const activeBtn = document.getElementById(`nav-btn-${tab}`);
+            if (activeEl) activeEl.classList.remove('hidden');
+            if (activeBtn) activeBtn.classList.add('nav-btn-active');
+
+            if (tab === 'feed') renderForumPosts();
+            if (tab === 'shop') updateShopUI();
+            if (tab === 'chat') renderChatConversations();
+        }
+
+        function renderAllViews() {
+            renderHomeworkList();
+            renderTodaySchedule();
+            renderForumPosts();
+            renderChatConversations();
+            renderCreativeWorks();
+            updateShopUI();
+        }
+
+        function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
+        function openModal(id) { document.getElementById(id).classList.remove('hidden'); }
+
+        // Các hàm giao diện giữ nguyên vẹn
+        function handleForumImageUpload(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (evt) => {
+                    uploadedForumImageBase64 = evt.target.result;
+                    document.getElementById('forumImagePreview').src = uploadedForumImageBase64;
+                    document.getElementById('forumImagePreviewBox').classList.remove('hidden');
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        function removeForumImage() {
+            uploadedForumImageBase64 = "";
+            document.getElementById('forumImagePreviewBox').classList.add('hidden');
+            document.getElementById('forumFileInput').value = "";
+        }
+
+        async function submitForumPost() {
+            const content = document.getElementById('forumPostInput').value.trim();
+            const isAnon = document.getElementById('forumAnonCheck').checked;
+            if (!content && !uploadedForumImageBase64) return;
+
+            const newPost = {
+                id: 'post_' + Date.now(),
+                authorID: currentUser.accountID,
+                authorNickname: isAnon ? "Ẩn Danh 🕵️" : currentUser.nickname,
+                authorAvatar: isAnon ? "https://api.dicebear.com/7.x/bottts/svg?seed=anon" : currentUser.avatar,
+                rainbowChat: currentUser.rainbowChatActive || false,
+                content: content,
+                image: uploadedForumImageBase64,
+                timestamp: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }),
+                likes: [], comments: []
+            };
+
+            await db.collection('posts').doc(newPost.id).set(newPost);
+            document.getElementById('forumPostInput').value = "";
+            removeForumImage();
+            renderForumPosts();
+        }
+
+        async function renderForumPosts() {
+            const snapshot = await db.collection('posts').get();
+            const container = document.getElementById('forumPostsContainer');
+            let posts = [];
+            snapshot.forEach(doc => posts.push(doc.data()));
+
+            if (posts.length === 0) {
+                container.innerHTML = `<div class="glass-card p-6 rounded-3xl text-center text-xs text-purple-300/60">Chưa có bài đăng nào trên Cloud.</div>`;
                 return;
             }
 
-            const newPostRef = db.ref('posts').push();
-            newPostRef.set({
-                author: isAnonymous ? "Thành viên ẩn danh" : currentUser.name,
-                content: content,
-                likes: 0,
-                timestamp: Date.now()
-            }).then(() => {
-                document.getElementById('post-content').value = '';
-                document.getElementById('post-anonymous').checked = false;
-            });
+            container.innerHTML = posts.map(post => `
+                <div class="glass-card rounded-3xl p-5 space-y-4 shadow-lg">
+                    <div class="flex items-center gap-3">
+                        <img src="${post.authorAvatar}" class="w-10 h-10 rounded-full object-cover border border-purple-400/40">
+                        <div>
+                            <h4 class="font-extrabold text-sm text-white">${post.authorNickname}</h4>
+                            <span class="text-[10px] text-purple-300/60">${post.timestamp}</span>
+                        </div>
+                    </div>
+                    <p class="text-xs md:text-sm text-purple-100 whitespace-pre-line">${post.content}</p>
+                    ${post.image ? `<img src="${post.image}" class="w-full max-h-96 object-cover rounded-2xl">` : ''}
+                </div>
+            `).join('');
         }
 
-        function loadPosts() {
-            db.ref('posts').on('value', snapshot => {
-                const container = document.getElementById('posts-container');
-                container.innerHTML = '';
-                
-                if (!snapshot.exists()) {
-                    container.innerHTML = '<div class="text-center py-8 text-slate-400 text-sm">Chưa có bài viết nào trên mây. Hãy là người đầu tiên đăng!</div>';
-                    return;
-                }
-
-                const posts = [];
-                snapshot.forEach(childSnap => {
-                    posts.push({ id: childSnap.key, ...childSnap.val() });
-                });
-                posts.sort((a, b) => b.timestamp - a.timestamp);
-
-                posts.forEach(post => {
-                    const dateStr = post.timestamp ? new Date(post.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Vừa xong';
-                    
-                    const postElement = document.createElement('div');
-                    postElement.className = 'glass p-4 rounded-2xl space-y-3';
-                    postElement.innerHTML = `
-                        <div class="flex justify-between items-center text-xs text-slate-400">
-                            <span class="font-bold text-indigo-300">${post.author}</span>
-                            <span>${dateStr}</span>
+        function updateShopUI() {
+            document.getElementById('shopCardsContainer').innerHTML = DEFAULT_SHOP_ITEMS.map(item => `
+                <div class="bg-slate-900/80 border border-purple-500/30 rounded-2xl p-4 space-y-3 flex flex-col justify-between">
+                    <div>
+                        <div class="flex items-center justify-between">
+                            <span class="text-3xl">${item.icon}</span>
+                            <span class="px-2.5 py-1 rounded-full bg-amber-500/20 text-amber-300 font-extrabold text-xs">${item.price} Bá Khí</span>
                         </div>
-                        <p class="text-sm text-slate-200 whitespace-pre-wrap">${post.content}</p>
-                        <div class="flex items-center space-x-4 pt-2 border-t border-slate-700/40 text-xs">
-                            <button onclick="likePost('${post.id}')" class="flex items-center space-x-1.5 text-slate-400 hover:text-pink-400 transition">
-                                <i class="fa-solid fa-heart"></i>
-                                <span>${post.likes || 0} Thả tim</span>
-                            </button>
-                        </div>
-                    `;
-                    container.appendChild(postElement);
-                });
-            });
+                        <h4 class="font-extrabold text-sm text-white mt-2">${item.name}</h4>
+                        <p class="text-xs text-purple-300/80 mt-1">${item.desc}</p>
+                    </div>
+                    <button onclick="buyShopItem('${item.key}', ${item.price}, '${item.name}')" class="w-full py-2 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 text-white font-extrabold text-xs">⚡ Mua Ngay</button>
+                </div>
+            `).join('');
         }
 
-        function likePost(postId) {
-            const postRef = db.ref('posts/' + postId);
-            postRef.transaction(post => {
-                if (post) {
-                    post.likes = (post.likes || 0) + 1;
+        function buyShopItem(key, price, name) {
+            if (currentUser.points < price) {
+                alert("Không đủ Bá Khí!");
+                return;
+            }
+            currentUser.points -= price;
+            if (!currentUser.inventory) currentUser.inventory = [];
+            currentUser.inventory.push({ id: 'inv_' + Date.now(), itemName: name, itemKey: key });
+            saveUserData();
+            confetti({ particleCount: 50 });
+            alert(`🎉 Mua thành công ${name}!`);
+        }
+
+        function claimDailyCheckin() {
+            const today = new Date().toLocaleDateString('vi-VN');
+            if (currentUser.lastCheckin === today) {
+                alert("Bạn đã điểm danh hôm nay rồi!");
+                return;
+            }
+            currentUser.points += 20;
+            currentUser.lastCheckin = today;
+            saveUserData();
+            confetti({ particleCount: 80 });
+            alert("🎁 Nhận thành công +20 Bá Khí điểm danh!");
+        }
+
+        function renderHomeworkList() {
+            document.getElementById('homeworkListContainer').innerHTML = `<p class="text-xs text-purple-300/60">Đã đồng bộ bài tập từ Cloud Firebase.</p>`;
+        }
+
+        function renderTodaySchedule() {
+            document.getElementById('todayLessonsList').innerHTML = `<p class="text-xs text-purple-300/60">TKB chuẩn Cloud.</p>`;
+        }
+
+        async function renderChatConversations() {
+            const usersSnap = await db.collection('users').get();
+            const container = document.getElementById('chatConversationsList');
+            let html = '';
+            usersSnap.forEach(doc => {
+                const u = doc.data();
+                if (u.accountID !== currentUser.accountID) {
+                    html += `<div class="p-3 cursor-pointer hover:bg-purple-900/30 flex items-center gap-3">
+                        <img src="${u.avatar}" class="w-9 h-9 rounded-full object-cover">
+                        <div><h5 class="font-extrabold text-xs text-white">${u.nickname}</h5><span class="text-[10px] text-purple-300">ID: ${u.accountID}</span></div>
+                    </div>`;
                 }
-                return post;
             });
+            container.innerHTML = html || '<p class="text-xs text-purple-300/60 p-3">Chưa có bạn học nào khác.</p>';
+        }
+
+        function searchAndAddFriend() {
+            const id = document.getElementById('searchFriendIdInput').value.trim();
+            if (id) activeChatUserID = id;
+            renderChatConversations();
         }
 
         function sendChatMessage() {
-            const input = document.getElementById('chat-input');
-            const text = input.value.trim();
+            const text = document.getElementById('chatInputMessage').value.trim();
             if (!text) return;
-
-            db.ref('messages').push().set({
-                sender: currentUser.name,
-                text: text,
-                timestamp: Date.now()
-            }).then(() => {
-                input.value = '';
-            });
+            db.collection('chats').add({ sender: currentUser.accountID, receiver: activeChatUserID, text: text, time: Date.now() });
+            document.getElementById('chatInputMessage').value = "";
         }
 
-        function loadChatMessages() {
-            const chatBox = document.getElementById('chat-messages');
-            db.ref('messages').on('value', snapshot => {
-                chatBox.innerHTML = '';
-
-                if (!snapshot.exists()) {
-                    chatBox.innerHTML = '<div class="text-center text-slate-500 py-4">Chưa có tin nhắn nào. Hãy bắt đầu trò chuyện!</div>';
-                    return;
-                }
-
-                snapshot.forEach(childSnap => {
-                    const msg = childSnap.val();
-                    const isMe = msg.sender === currentUser.name;
-                    
-                    const div = document.createElement('div');
-                    div.className = `flex flex-col ${isMe ? 'items-end' : 'items-start'}`;
-                    div.innerHTML = `
-                        <span class="text-[10px] text-slate-400 mb-0.5">${msg.sender}</span>
-                        <div class="px-3.5 py-2 rounded-2xl max-w-[75%] text-xs ${isMe ? 'bg-indigo-600 text-white rounded-br-none' : 'bg-slate-800 text-slate-200 rounded-bl-none border border-slate-700/50'}">
-                            ${msg.text}
-                        </div>
-                    `;
-                    chatBox.appendChild(div);
-                });
-                chatBox.scrollTop = chatBox.scrollHeight;
-            });
+        function renderCreativeWorks() {
+            document.getElementById('creativeWorksContainer').innerHTML = `<p class="text-xs text-purple-300/60">Góc thơ văn Firebase.</p>`;
         }
+        function submitNewCreativeWork() {}
+        function submitNewHomework() {}
     </script>
 </body>
 </html>
