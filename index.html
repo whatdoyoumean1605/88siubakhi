@@ -7,9 +7,9 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
-    <!-- Firebase SDKs (Compat version cho file HTML đơn) -->
+    <!-- Firebase SDKs (Compat version cho Realtime Database) -->
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
 
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
@@ -49,7 +49,7 @@
             <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-500 to-purple-500 flex items-center justify-center font-extrabold text-xl shadow-glow">8</div>
             <div>
                 <h1 class="font-bold text-lg text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-pink-400">MXH Lớp 8/8</h1>
-                <p class="text-xs text-slate-400">Hệ thống Đám Mây Bảo Mật</p>
+                <p class="text-xs text-slate-400">Hệ thống Realtime Database</p>
             </div>
         </div>
         <div class="flex items-center space-x-3">
@@ -153,7 +153,7 @@
         </section>
     </main>
 
-    <!-- JavaScript & Firebase Config chính thức của dự án database88-f5623 -->
+    <!-- JavaScript & Firebase Realtime Database Config -->
     <script>
         const firebaseConfig = {
             apiKey: "AIzaSyAslDzCIzWXrA8MtEYFF-gV1BUBlxBuTiA",
@@ -165,7 +165,7 @@
         };
 
         firebase.initializeApp(firebaseConfig);
-        const db = firebase.firestore();
+        const db = firebase.database();
 
         let currentUser = JSON.parse(localStorage.getItem('mxh_user')) || null;
 
@@ -177,9 +177,11 @@
                 document.getElementById('login-modal').classList.remove('hidden');
             }
             loadMembers();
+            loadPosts();
+            loadChatMessages();
         });
 
-        async function handleLogin() {
+        function handleLogin() {
             const nameInput = document.getElementById('input-username').value.trim();
             const passInput = document.getElementById('input-password').value.trim();
 
@@ -188,32 +190,33 @@
                 return;
             }
 
-            const userRef = db.collection("users").doc(nameInput);
-            const doc = await userRef.get();
+            // Thay thế ký tự không hợp lệ cho Key Firebase Realtime Database nếu có
+            const safeKey = nameInput.replace(/[.#$[\]]/g, "_");
+            const userRef = db.ref('users/' + safeKey);
 
-            if (doc.exists) {
-                // Đã có tài khoản -> Kiểm tra mật khẩu
-                const data = doc.data();
-                if (data.password !== passInput) {
-                    alert("Sai mật khẩu rồi bạn ơi! Không thể đăng nhập vào tài khoản này.");
-                    return;
+            userRef.once('value', snapshot => {
+                if (snapshot.exists()) {
+                    const data = snapshot.val();
+                    if (data.password !== passInput) {
+                        alert("Sai mật khẩu rồi bạn ơi! Không thể đăng nhập vào tài khoản này.");
+                        return;
+                    }
+                    currentUser = { name: nameInput, baki: data.baki || 1200 };
+                } else {
+                    currentUser = { name: nameInput, baki: 1200 };
+                    userRef.set({
+                        name: nameInput,
+                        password: passInput,
+                        baki: 1200,
+                        lastActive: Date.now()
+                    });
                 }
-                currentUser = { name: nameInput, baki: data.baki || 1200 };
-            } else {
-                // Tài khoản mới -> Tự động đăng ký trên Firestore
-                currentUser = { name: nameInput, baki: 1200 };
-                await userRef.set({
-                    name: nameInput,
-                    password: passInput,
-                    baki: 1200,
-                    lastActive: firebase.firestore.FieldValue.serverTimestamp()
-                });
-            }
 
-            localStorage.setItem('mxh_user', JSON.stringify(currentUser));
-            document.getElementById('login-modal').classList.add('hidden');
-            updateUserUI();
-            loadMembers();
+                localStorage.setItem('mxh_user', JSON.stringify(currentUser));
+                document.getElementById('login-modal').classList.add('hidden');
+                updateUserUI();
+                loadMembers();
+            });
         }
 
         function logout() {
@@ -238,17 +241,17 @@
         }
 
         function loadMembers() {
-            db.collection("users").onSnapshot(snapshot => {
+            db.ref('users').on('value', snapshot => {
                 const container = document.getElementById('members-container');
                 container.innerHTML = '';
 
-                if (snapshot.empty) {
+                if (!snapshot.exists()) {
                     container.innerHTML = '<div class="text-center py-4 text-slate-400 text-sm">Chưa có thành viên nào.</div>';
                     return;
                 }
 
-                snapshot.forEach(doc => {
-                    const user = doc.data();
+                snapshot.forEach(childSnap => {
+                    const user = childSnap.val();
                     const memberEl = document.createElement('div');
                     memberEl.className = 'bg-slate-900/40 border border-slate-700/50 p-3 rounded-xl flex justify-between items-center text-sm';
                     memberEl.innerHTML = `
@@ -274,57 +277,64 @@
                 return;
             }
 
-            db.collection("posts").add({
+            const newPostRef = db.ref('posts').push();
+            newPostRef.set({
                 author: isAnonymous ? "Thành viên ẩn danh" : currentUser.name,
                 content: content,
                 likes: 0,
-                timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                timestamp: Date.now()
             }).then(() => {
                 document.getElementById('post-content').value = '';
                 document.getElementById('post-anonymous').checked = false;
             });
         }
 
-        db.collection("posts").orderBy("timestamp", "desc").onSnapshot(snapshot => {
-            const container = document.getElementById('posts-container');
-            container.innerHTML = '';
-            
-            if (snapshot.empty) {
-                container.innerHTML = '<div class="text-center py-8 text-slate-400 text-sm">Chưa có bài viết nào trên mây. Hãy là người đầu tiên đăng!</div>';
-                return;
-            }
-
-            snapshot.forEach(doc => {
-                const post = doc.data();
-                const dateStr = post.timestamp ? new Date(post.timestamp.toDate()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Vừa xong';
+        function loadPosts() {
+            db.ref('posts').on('value', snapshot => {
+                const container = document.getElementById('posts-container');
+                container.innerHTML = '';
                 
-                const postElement = document.createElement('div');
-                postElement.className = 'glass p-4 rounded-2xl space-y-3';
-                postElement.innerHTML = `
-                    <div class="flex justify-between items-center text-xs text-slate-400">
-                        <span class="font-bold text-indigo-300">${post.author}</span>
-                        <span>${dateStr}</span>
-                    </div>
-                    <p class="text-sm text-slate-200 whitespace-pre-wrap">${post.content}</p>
-                    <div class="flex items-center space-x-4 pt-2 border-t border-slate-700/40 text-xs">
-                        <button onclick="likePost('${doc.id}')" class="flex items-center space-x-1.5 text-slate-400 hover:text-pink-400 transition">
-                            <i class="fa-solid fa-heart"></i>
-                            <span>${post.likes || 0} Thả tim</span>
-                        </button>
-                    </div>
-                `;
-                container.appendChild(postElement);
+                if (!snapshot.exists()) {
+                    container.innerHTML = '<div class="text-center py-8 text-slate-400 text-sm">Chưa có bài viết nào trên mây. Hãy là người đầu tiên đăng!</div>';
+                    return;
+                }
+
+                const posts = [];
+                snapshot.forEach(childSnap => {
+                    posts.push({ id: childSnap.key, ...childSnap.val() });
+                });
+                posts.sort((a, b) => b.timestamp - a.timestamp);
+
+                posts.forEach(post => {
+                    const dateStr = post.timestamp ? new Date(post.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Vừa xong';
+                    
+                    const postElement = document.createElement('div');
+                    postElement.className = 'glass p-4 rounded-2xl space-y-3';
+                    postElement.innerHTML = `
+                        <div class="flex justify-between items-center text-xs text-slate-400">
+                            <span class="font-bold text-indigo-300">${post.author}</span>
+                            <span>${dateStr}</span>
+                        </div>
+                        <p class="text-sm text-slate-200 whitespace-pre-wrap">${post.content}</p>
+                        <div class="flex items-center space-x-4 pt-2 border-t border-slate-700/40 text-xs">
+                            <button onclick="likePost('${post.id}')" class="flex items-center space-x-1.5 text-slate-400 hover:text-pink-400 transition">
+                                <i class="fa-solid fa-heart"></i>
+                                <span>${post.likes || 0} Thả tim</span>
+                            </button>
+                        </div>
+                    `;
+                    container.appendChild(postElement);
+                });
             });
-        });
+        }
 
         function likePost(postId) {
-            const postRef = db.collection("posts").doc(postId);
-            db.runTransaction(transaction => {
-                return transaction.get(postRef).then(doc => {
-                    if (!doc.exists) return;
-                    const newLikes = (doc.data().likes || 0) + 1;
-                    transaction.update(postRef, { likes: newLikes });
-                });
+            const postRef = db.ref('posts/' + postId);
+            postRef.transaction(post => {
+                if (post) {
+                    post.likes = (post.likes || 0) + 1;
+                }
+                return post;
             });
         }
 
@@ -333,40 +343,42 @@
             const text = input.value.trim();
             if (!text) return;
 
-            db.collection("messages").add({
+            db.ref('messages').push().set({
                 sender: currentUser.name,
                 text: text,
-                timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                timestamp: Date.now()
             }).then(() => {
                 input.value = '';
             });
         }
 
-        db.collection("messages").orderBy("timestamp", "asc").onSnapshot(snapshot => {
+        function loadChatMessages() {
             const chatBox = document.getElementById('chat-messages');
-            chatBox.innerHTML = '';
+            db.ref('messages').on('value', snapshot => {
+                chatBox.innerHTML = '';
 
-            if (snapshot.empty) {
-                chatBox.innerHTML = '<div class="text-center text-slate-500 py-4">Chưa có tin nhắn nào. Hãy bắt đầu trò chuyện!</div>';
-                return;
-            }
+                if (!snapshot.exists()) {
+                    chatBox.innerHTML = '<div class="text-center text-slate-500 py-4">Chưa có tin nhắn nào. Hãy bắt đầu trò chuyện!</div>';
+                    return;
+                }
 
-            snapshot.forEach(doc => {
-                const msg = doc.data();
-                const isMe = msg.sender === currentUser.name;
-                
-                const div = document.createElement('div');
-                div.className = `flex flex-col ${isMe ? 'items-end' : 'items-start'}`;
-                div.innerHTML = `
-                    <span class="text-[10px] text-slate-400 mb-0.5">${msg.sender}</span>
-                    <div class="px-3.5 py-2 rounded-2xl max-w-[75%] text-xs ${isMe ? 'bg-indigo-600 text-white rounded-br-none' : 'bg-slate-800 text-slate-200 rounded-bl-none border border-slate-700/50'}">
-                        ${msg.text}
-                    </div>
-                `;
-                chatBox.appendChild(div);
+                snapshot.forEach(childSnap => {
+                    const msg = childSnap.val();
+                    const isMe = msg.sender === currentUser.name;
+                    
+                    const div = document.createElement('div');
+                    div.className = `flex flex-col ${isMe ? 'items-end' : 'items-start'}`;
+                    div.innerHTML = `
+                        <span class="text-[10px] text-slate-400 mb-0.5">${msg.sender}</span>
+                        <div class="px-3.5 py-2 rounded-2xl max-w-[75%] text-xs ${isMe ? 'bg-indigo-600 text-white rounded-br-none' : 'bg-slate-800 text-slate-200 rounded-bl-none border border-slate-700/50'}">
+                            ${msg.text}
+                        </div>
+                    `;
+                    chatBox.appendChild(div);
+                });
+                chatBox.scrollTop = chatBox.scrollHeight;
             });
-            chatBox.scrollTop = chatBox.scrollHeight;
-        });
+        }
     </script>
 </body>
 </html>
