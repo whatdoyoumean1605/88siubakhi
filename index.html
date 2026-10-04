@@ -748,8 +748,9 @@
     </div>
 
     <!-- JAVASCRIPT FIREBASE INTEGRATION -->
+   <!-- JAVASCRIPT FIREBASE INTEGRATION (REALTIME DATABASE) -->
     <script>
-        // TODO: Thay thế bằng Firebase Project Config của bạn
+        // Config Firebase của bạn
         const firebaseConfig = {
             apiKey: "AIzaSyAs1DzCIzWXrA8MtEYFF-gV1BUBlxBuTiA",
             authDomain: "database88-f5623.firebaseapp.com",
@@ -760,7 +761,7 @@
             appId: "1:503624947674:web:59c881912ff6d4033752e3"
         };
         firebase.initializeApp(firebaseConfig);
-        const db = firebase.database();
+        const db = firebase.database(); // Dùng Realtime Database
 
         const DEFAULT_SHOP_ITEMS = [
             { key: 'rainbow_chat', name: 'Bong Bóng Chat Cầu Vồng', price: 200, icon: '🌈', desc: 'Biến nền tin nhắn thành dải màu cầu vồng.' },
@@ -776,10 +777,10 @@
         let uploadedForumImageBase64 = "";
 
         async function initCloudData() {
-            // Kiểm tra và khởi tạo Shop items mặc định nếu chưa có trên Firestore
-            const shopRef = db.collection('settings').doc('shop');
-            const shopDoc = await shopRef.get();
-            if (!shopDoc.exists) {
+            // Khởi tạo Shop items trên Realtime DB nếu chưa có
+            const shopRef = db.ref('settings/shop');
+            const shopSnap = await shopRef.once('value');
+            if (!shopSnap.exists()) {
                 await shopRef.set({ items: DEFAULT_SHOP_ITEMS });
             }
         }
@@ -788,7 +789,9 @@
 
         function saveUserData() {
             localStorage.setItem('k8_current_user', JSON.stringify(currentUser));
-            db.collection('users').doc(currentUser.accountID).set(currentUser, { merge: true });
+            if (currentUser && currentUser.accountID) {
+                db.ref('users/' + currentUser.accountID).update(currentUser);
+            }
             renderUserChips();
             updateShopUI();
         }
@@ -797,17 +800,17 @@
             if (!currentUser) {
                 document.getElementById('authGateModal').classList.remove('hidden');
                 // Tự động kiểm tra nếu chưa có tài khoản nào trên hệ thống
-                const usersSnap = await db.collection('users').get();
-                if (usersSnap.empty) {
+                const usersSnap = await db.ref('users').once('value');
+                if (!usersSnap.exists()) {
                     console.log("Hệ thống chưa có tài khoản. Sẵn sàng tạo tài khoản tự động.");
                 }
                 return;
             }
             document.getElementById('authGateModal').classList.add('hidden');
 
-            const userDoc = await db.collection('users').doc(currentUser.accountID).get();
-            if (userDoc.exists) {
-                currentUser = userDoc.data();
+            const userSnap = await db.ref('users/' + currentUser.accountID).once('value');
+            if (userSnap.exists()) {
+                currentUser = userSnap.val();
                 localStorage.setItem('k8_current_user', JSON.stringify(currentUser));
             }
 
@@ -831,14 +834,16 @@
             const un = document.getElementById('loginUsername').value.trim();
             const pw = document.getElementById('loginPassword').value.trim();
 
-            const snapshot = await db.collection('users').get();
+            const snapshot = await db.ref('users').once('value');
             let found = null;
-            snapshot.forEach(doc => {
-                const u = doc.data();
-                if ((u.username === un || u.nickname === un || u.accountID === un) && u.password === pw) {
-                    found = u;
-                }
-            });
+            if (snapshot.exists()) {
+                snapshot.forEach(childSnap => {
+                    const u = childSnap.val();
+                    if ((u.username === un || u.nickname === un || u.accountID === un) && u.password === pw) {
+                        found = u;
+                    }
+                });
+            }
 
             if (found) {
                 currentUser = found;
@@ -857,16 +862,16 @@
             const accountID = document.getElementById('regAccountID').value.trim();
             const password = document.getElementById('regPassword').value.trim();
 
-            const userRef = db.collection('users').doc(accountID);
-            const doc = await userRef.get();
-            if (doc.exists) {
+            const userRef = db.ref('users/' + accountID);
+            const userSnap = await userRef.once('value');
+            if (userSnap.exists()) {
                 alert("ID 6 con số này đã tồn tại trên Cloud!");
                 return;
             }
 
-            // Kiểm tra xem hệ thống đã có tài khoản nào chưa để cấp quyền Tối Cao tự động nếu chưa có
-            const allUsersSnap = await db.collection('users').get();
-            const isFirstUser = allUsersSnap.empty;
+            // Kiểm tra xem hệ thống đã có tài khoản nào chưa để cấp quyền Tối Cao tự động
+            const allUsersSnap = await db.ref('users').once('value');
+            const isFirstUser = !allUsersSnap.exists();
 
             const newUser = {
                 username: nickname.toLowerCase().replace(/\s+/g, ''),
@@ -876,7 +881,7 @@
                 userClass: userClass,
                 accountID: accountID,
                 role: isFirstUser ? "SUPER_ADMIN" : "STUDENT",
-                status: "APPROVED", // Tự động đăng ký & phê duyệt luôn khi không cần chờ
+                status: "APPROVED",
                 points: isFirstUser ? 9999 : 50,
                 streak: 1,
                 inventory: [],
@@ -972,7 +977,6 @@
         function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
         function openModal(id) { document.getElementById(id).classList.remove('hidden'); }
 
-        // Các hàm giao diện giữ nguyên vẹn
         function handleForumImageUpload(e) {
             const file = e.target.files[0];
             if (file) {
@@ -1009,17 +1013,19 @@
                 likes: [], comments: []
             };
 
-            await db.collection('posts').doc(newPost.id).set(newPost);
+            await db.ref('posts/' + newPost.id).set(newPost);
             document.getElementById('forumPostInput').value = "";
             removeForumImage();
             renderForumPosts();
         }
 
         async function renderForumPosts() {
-            const snapshot = await db.collection('posts').get();
+            const snapshot = await db.ref('posts').once('value');
             const container = document.getElementById('forumPostsContainer');
             let posts = [];
-            snapshot.forEach(doc => posts.push(doc.data()));
+            if (snapshot.exists()) {
+                snapshot.forEach(childSnap => posts.push(childSnap.val()));
+            }
 
             if (posts.length === 0) {
                 container.innerHTML = `<div class="glass-card p-6 rounded-3xl text-center text-xs text-purple-300/60">Chưa có bài đăng nào trên Cloud.</div>`;
@@ -1092,18 +1098,20 @@
         }
 
         async function renderChatConversations() {
-            const usersSnap = await db.collection('users').get();
+            const usersSnap = await db.ref('users').once('value');
             const container = document.getElementById('chatConversationsList');
             let html = '';
-            usersSnap.forEach(doc => {
-                const u = doc.data();
-                if (u.accountID !== currentUser.accountID) {
-                    html += `<div class="p-3 cursor-pointer hover:bg-purple-900/30 flex items-center gap-3">
-                        <img src="${u.avatar}" class="w-9 h-9 rounded-full object-cover">
-                        <div><h5 class="font-extrabold text-xs text-white">${u.nickname}</h5><span class="text-[10px] text-purple-300">ID: ${u.accountID}</span></div>
-                    </div>`;
-                }
-            });
+            if (usersSnap.exists()) {
+                usersSnap.forEach(childSnap => {
+                    const u = childSnap.val();
+                    if (u.accountID !== currentUser.accountID) {
+                        html += `<div class="p-3 cursor-pointer hover:bg-purple-900/30 flex items-center gap-3">
+                            <img src="${u.avatar}" class="w-9 h-9 rounded-full object-cover">
+                            <div><h5 class="font-extrabold text-xs text-white">${u.nickname}</h5><span class="text-[10px] text-purple-300">ID: ${u.accountID}</span></div>
+                        </div>`;
+                    }
+                });
+            }
             container.innerHTML = html || '<p class="text-xs text-purple-300/60 p-3">Chưa có bạn học nào khác.</p>';
         }
 
@@ -1116,7 +1124,7 @@
         function sendChatMessage() {
             const text = document.getElementById('chatInputMessage').value.trim();
             if (!text) return;
-            db.collection('chats').add({ sender: currentUser.accountID, receiver: activeChatUserID, text: text, time: Date.now() });
+            db.ref('chats').push({ sender: currentUser.accountID, receiver: activeChatUserID, text: text, time: Date.now() });
             document.getElementById('chatInputMessage').value = "";
         }
 
