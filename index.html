@@ -158,6 +158,7 @@
         const firebaseConfig = {
             apiKey: "AIzaSyAslDzCIzWXrA8MtEYFF-gV1BUBlxBuTiA",
             authDomain: "database88-f5623.firebaseapp.com",
+            databaseURL: "https://database88-f5623-default-rtdb.asia-southeast1.firebasedatabase.app", // Đã bổ sung databaseURL chuẩn region Singapore
             projectId: "database88-f5623",
             storageBucket: "database88-f5623.firebasestorage.app",
             messagingSenderId: "503624947674",
@@ -190,7 +191,6 @@
                 return;
             }
 
-            // Thay thế ký tự không hợp lệ cho Key Firebase Realtime Database nếu có
             const safeKey = nameInput.replace(/[.#$[\]]/g, "_");
             const userRef = db.ref('users/' + safeKey);
 
