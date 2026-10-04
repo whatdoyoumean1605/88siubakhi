@@ -748,7 +748,6 @@
     </div>
 
     <!-- JAVASCRIPT FIREBASE INTEGRATION -->
-   <!-- JAVASCRIPT FIREBASE INTEGRATION (REALTIME DATABASE) -->
     <script>
         // Config Firebase của bạn
         const firebaseConfig = {
@@ -761,7 +760,7 @@
             appId: "1:503624947674:web:59c881912ff6d4033752e3"
         };
         firebase.initializeApp(firebaseConfig);
-        const db = firebase.database(); // Dùng Realtime Database
+        const db = firebase.database();
 
         const DEFAULT_SHOP_ITEMS = [
             { key: 'rainbow_chat', name: 'Bong Bóng Chat Cầu Vồng', price: 200, icon: '🌈', desc: 'Biến nền tin nhắn thành dải màu cầu vồng.' },
@@ -777,7 +776,6 @@
         let uploadedForumImageBase64 = "";
 
         async function initCloudData() {
-            // Khởi tạo Shop items trên Realtime DB nếu chưa có
             const shopRef = db.ref('settings/shop');
             const shopSnap = await shopRef.once('value');
             if (!shopSnap.exists()) {
@@ -799,11 +797,6 @@
         async function checkAuthState() {
             if (!currentUser) {
                 document.getElementById('authGateModal').classList.remove('hidden');
-                // Tự động kiểm tra nếu chưa có tài khoản nào trên hệ thống
-                const usersSnap = await db.ref('users').once('value');
-                if (!usersSnap.exists()) {
-                    console.log("Hệ thống chưa có tài khoản. Sẵn sàng tạo tài khoản tự động.");
-                }
                 return;
             }
             document.getElementById('authGateModal').classList.add('hidden');
@@ -869,7 +862,6 @@
                 return;
             }
 
-            // Kiểm tra xem hệ thống đã có tài khoản nào chưa để cấp quyền Tối Cao tự động
             const allUsersSnap = await db.ref('users').once('value');
             const isFirstUser = !allUsersSnap.exists();
 
@@ -915,15 +907,15 @@
             const isSupreme = currentUser.role === 'SUPER_ADMIN' || currentUser.accountID === '888888';
 
             if (isSupreme) {
-                supremeBtn.classList.remove('hidden');
-                addHwBtn.classList.remove('hidden');
-                btnEditExam.classList.remove('hidden');
-                btnEditSched.classList.remove('hidden');
+                if (supremeBtn) supremeBtn.classList.remove('hidden');
+                if (addHwBtn) addHwBtn.classList.remove('hidden');
+                if (btnEditExam) btnEditExam.classList.remove('hidden');
+                if (btnEditSched) btnEditSched.classList.remove('hidden');
             } else {
-                supremeBtn.classList.add('hidden');
-                addHwBtn.classList.add('hidden');
-                btnEditExam.classList.add('hidden');
-                btnEditSched.classList.add('hidden');
+                if (supremeBtn) supremeBtn.classList.add('hidden');
+                if (addHwBtn) addHwBtn.classList.add('hidden');
+                if (btnEditExam) btnEditExam.classList.add('hidden');
+                if (btnEditSched) btnEditSched.classList.add('hidden');
             }
 
             const avatarFrameClass = currentUser.sparkleFrameActive ? 'sparkle-avatar-frame' : '';
@@ -943,7 +935,8 @@
                 </div>
                 <button onclick="logout()" class="ml-2 text-purple-300/70 hover:text-red-400 text-xs" title="Đăng Xuất"><i class="fa-solid fa-right-from-bracket"></i></button>
             `;
-            document.getElementById('createPostUserAvatar').src = currentUser.avatar;
+            const createPostAvatar = document.getElementById('createPostUserAvatar');
+            if (createPostAvatar) createPostAvatar.src = currentUser.avatar;
         }
 
         function switchTab(tab) {
@@ -974,8 +967,19 @@
             updateShopUI();
         }
 
-        function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
-        function openModal(id) { document.getElementById(id).classList.remove('hidden'); }
+        // HÀM MỞ / ĐÓNG MODAL
+        function closeModal(id) { 
+            const el = document.getElementById(id);
+            if (el) el.classList.add('hidden'); 
+        }
+        function openModal(id) { 
+            const el = document.getElementById(id);
+            if (el) el.classList.remove('hidden'); 
+        }
+
+        function openAddHomeworkModal() { openModal('addHomeworkModal'); }
+        function openEditScheduleModal() { openModal('editScheduleModal'); }
+        function openEditExamModal() { openModal('editExamModal'); }
 
         function handleForumImageUpload(e) {
             const file = e.target.files[0];
@@ -1022,6 +1026,7 @@
         async function renderForumPosts() {
             const snapshot = await db.ref('posts').once('value');
             const container = document.getElementById('forumPostsContainer');
+            if (!container) return;
             let posts = [];
             if (snapshot.exists()) {
                 snapshot.forEach(childSnap => posts.push(childSnap.val()));
@@ -1048,7 +1053,9 @@
         }
 
         function updateShopUI() {
-            document.getElementById('shopCardsContainer').innerHTML = DEFAULT_SHOP_ITEMS.map(item => `
+            const container = document.getElementById('shopCardsContainer');
+            if (!container) return;
+            container.innerHTML = DEFAULT_SHOP_ITEMS.map(item => `
                 <div class="bg-slate-900/80 border border-purple-500/30 rounded-2xl p-4 space-y-3 flex flex-col justify-between">
                     <div>
                         <div class="flex items-center justify-between">
@@ -1090,16 +1097,19 @@
         }
 
         function renderHomeworkList() {
-            document.getElementById('homeworkListContainer').innerHTML = `<p class="text-xs text-purple-300/60">Đã đồng bộ bài tập từ Cloud Firebase.</p>`;
+            const container = document.getElementById('homeworkListContainer');
+            if (container) container.innerHTML = `<p class="text-xs text-purple-300/60">Đã đồng bộ bài tập từ Cloud Firebase.</p>`;
         }
 
         function renderTodaySchedule() {
-            document.getElementById('todayLessonsList').innerHTML = `<p class="text-xs text-purple-300/60">TKB chuẩn Cloud.</p>`;
+            const container = document.getElementById('todayLessonsList');
+            if (container) container.innerHTML = `<p class="text-xs text-purple-300/60">TKB chuẩn Cloud.</p>`;
         }
 
         async function renderChatConversations() {
             const usersSnap = await db.ref('users').once('value');
             const container = document.getElementById('chatConversationsList');
+            if (!container) return;
             let html = '';
             if (usersSnap.exists()) {
                 usersSnap.forEach(childSnap => {
@@ -1129,7 +1139,8 @@
         }
 
         function renderCreativeWorks() {
-            document.getElementById('creativeWorksContainer').innerHTML = `<p class="text-xs text-purple-300/60">Góc thơ văn Firebase.</p>`;
+            const container = document.getElementById('creativeWorksContainer');
+            if (container) container.innerHTML = `<p class="text-xs text-purple-300/60">Góc thơ văn Firebase.</p>`;
         }
         function submitNewCreativeWork() { }
         function submitNewHomework() { }
